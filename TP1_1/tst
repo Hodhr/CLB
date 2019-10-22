@@ -1,0 +1,16 @@
+
+insmod blk_driver.ko
+
+parted
+select /dev/blkd
+mklabel msdos
+mkpart
+p
+ext2
+0
+100%
+I
+quit
+mkfs.ext4 /dev/blkd
+y
+mount /dev/blkd /mnt

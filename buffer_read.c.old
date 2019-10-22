@@ -1,0 +1,84 @@
+#include "gpio_driver.h"
+
+static int ch_init(void)
+{
+  printk(KERN_ALERT "DRIVER ONLINE\n");
+
+  if (alloc_chrdev_region(&device,0,1,"gpioch") == -1) {
+    printk(KERN_ALERT "ERROR : alloc_chrdev_region\n");
+    return -EINVAL;
+  }
+
+  classDevice = class_create(THIS_MODULE, "gpioch");
+
+  opDev = cdev_alloc();
+  opDev->ops = &fops;
+  opDev->owner = THIS_MODULE;
+
+
+  cdev_add(opDev,device,1);
+
+  device_create(classDevice, NULL, device, NULL, "gpio1");
+  buffer = kmalloc (sizeof(struct Buffer),GFP_KERNEL);
+  buffer->size = 0;
+  return 0;
+}
+
+static void ch_cleanup(void)
+{
+    printk(KERN_ALERT "DRIVER OFFLINE\n");
+    if (buffer->size != 0)
+        kfree (buffer->data);
+
+    kfree(buffer);
+    unregister_chrdev_region(device,1);
+    device_destroy(classDevice, device);
+    cdev_del(opDev);
+    class_destroy (classDevice);
+}
+
+ssize_t ch_read (struct file *file, char *bb, size_t size, loff_t *offset)
+{
+
+    int sizeToCopy = MIN(buffer->size, size);
+    if(buffer->size != 0) {
+        if(copy_to_user(bb, buffer->data, sizeToCopy)!=0)
+            return -EFAULT;
+        kfree(buffer->data);
+        buffer->size = 0;
+    }
+
+    return sizeToCopy;
+}
+
+ssize_t ch_write (struct file *file, const char *bb, size_t size, loff_t *offset)
+{
+    int sizeToCopy = MIN(LENGTH, size);
+
+    if(buffer->size != 0)
+        kfree(buffer->data);
+
+    buffer->data = (char *)kmalloc(LENGTH * sizeof(char), GFP_KERNEL);
+    buffer->size = size - copy_from_user(buffer->data, bb, sizeToCopy);
+    return buffer->size;
+}
+
+
+int ch_open (struct inode * inode, struct file * file)
+{
+    printk(KERN_ALERT "DRIVER OPEN \n");
+    return 0;
+}
+
+int ch_release (struct inode * inode, struct file * file)
+{
+  printk(KERN_ALERT "DRIVER RELEASE \n");
+  return 0;
+}
+
+module_init(ch_init);
+module_exit(ch_cleanup);
+
+MODULE_LICENSE(LICENCE);
+MODULE_AUTHOR(AUTEUR);
+MODULE_DESCRIPTION(DESCRIPTION);
