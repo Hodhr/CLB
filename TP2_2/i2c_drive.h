@@ -19,8 +19,8 @@
 #define LENGTH 256 // Buffer size
 #define HI 1 // hight state
 #define LE 0 // low state
-#define SDA 2
-#define SCA 3
+#define SDA 17
+#define SCA 27
 
 // operations list
 ssize_t ch_read (struct file *, char *, size_t, loff_t *);
